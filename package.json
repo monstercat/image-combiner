@@ -1,0 +1,29 @@
+{
+  "name": "image-combiner",
+  "description": "image-combiner",
+  "keywords": [
+    "image-combiner",
+    "image",
+    "combiner"
+  ],
+  "version": "0.0.1",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/monstercat/image-combiner.git"
+  },
+  "main": "index.js",
+  "scripts": {
+    "build-dev": "component build --dev",
+    "component": "component install --dev",
+    "test": "component test"
+  },
+  "dependencies": {
+    "async": "^2.0.0-rc.3",
+    "debug": "^2.2.0",
+    "tmp": "0.0.28"
+  },
+  "devDependencies": {
+    "expect.js": "*",
+    "mocha": "^1.21.4"
+  }
+}
