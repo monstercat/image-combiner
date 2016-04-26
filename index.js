@@ -4,18 +4,20 @@ var async    = require('async')
 var path     = require('path')
 var debug    = require('debug')('image-combiner')
 var join     = require('path').join
-var sizeOf   = require('image-size');
+var sizeOf   = require('image-size')
+var fs       = require('fs')
 var isUrl    = require('is-url')
 var request  = require('superagent')
+var _        = require('underscore')._
 
 var types = {
   'image/text': processText,
   'image/image': processImage
 }
 
-function downloadFiles(data, dir, done) {
+function downloadFiles(layers, dir, done) {
   var map = new Map()
-  async.each(data, (layer, cb)=> {
+  async.each(layers, (layer, cb)=> {
     if (layer.file && isUrl(layer.file)) {
       var filepath = path.join(dir, path.basename(layer.file))
       var stream = fs.createWriteStream(filepath)
@@ -27,63 +29,86 @@ function downloadFiles(data, dir, done) {
         cb(null)
       })
     }
-    else if (layer.file) {
-      map.set(layer, layer.file)
+    else {
+      if (layer.file) {
+        map.set(layer, layer.file)
+      }
+      cb(null)
     }
   }, err => {
     done(err, map)
   })
 }
 
-function processLayers(data, source, done) {
-  if (!Array.isArray(data)) {
-    data = [data]
+function processLayers(layers, source, done) {
+  if (!Array.isArray(layers)) {
+    layers = [layers]
   }
   if (typeof source === 'function') {
     done = source
     source = null
   }
 
-  tmp.dir((err, filepath, clean) => {
-    if (err) {
-      debug('Error creating tmp file: %s', err)
-      return done(err)
-    }
-    var filepath = join(filepath, 'temp.png')
-
-    largestSize(data, (err, dim)=> {
-      if (err) {
-        debug('largestSize error: %s', err)
-        return done(err)
-      }
-      debug('dimensions %j', dim)
-
-      blank(filepath, dim.width, dim.height, err => {
-        if (err) {
-          debug('blank error: %s', err)
-          return done(err)
-        }
-        debug('Dimensions %dx%d', dim.width, dim.height)
-
-        async.eachSeries(data, processLayer.bind(null, filepath), err => {
-          debug('Output at %s', filepath)
-          done(err, filepath)
-        })
-      })
-    })
+  async.auto({
+    'directory': makeDirectory,
+    'download': ['directory', download],
+    'size': ['download', findSize],
+    'blank': ['size', makeBlank],
+    'layers': ['blank', doLayers]
+  }, (err, results) => {
+    done(err, (results && results.layers) ? results.layers : null)
   })
+
+  function makeDirectory(cb) {
+    tmp.dir((err, dirpath, clean) => {
+      cb(err, {directory: dirpath, file: join(dirpath, 'temp.png')})
+    })
+  }
+
+  function download(results, cb) {
+    downloadFiles(layers, results.directory.directory, (err, map)=> {
+      if (err) {
+        return cb(err)
+      }
+      layers = layers.map(layer => {
+        var obj = _.clone(layer)
+        if (layer.file && map.get(layer)) {
+          obj.file = map.get(layer)
+        }
+        return obj
+      })
+      cb(null)
+    })
+  }
+
+  function findSize(results, cb) {
+    largestSize(layers, cb)
+  }
+
+  function makeBlank(results, cb) {
+    var filepath = results.directory.file
+      , dim = results.size
+    blank(filepath, dim.width, dim.height, cb)
+  }
+
+  function doLayers(results, cb) {
+    var outputfile = results.directory.file
+    async.eachSeries(layers, processLayer.bind(null, outputfile), err => {
+      cb(err, outputfile)
+    })
+  }
 }
 
-function processLayer(filepath, layer, done) {
+function processLayer(outputfile, layer, done) {
   if (types[layer.type]) {
-    types[layer.type](filepath, layer, done)
+    types[layer.type](outputfile, layer, done)
   }
   else {
     async.setImmediate(done)
   }
 }
 
-function processText(filepath, layer, done) {
+function processText(outputfile, layer, done) {
   var args = []
     , x = layer.x || 0
     , y = layer.y || 0
@@ -98,11 +123,11 @@ function processText(filepath, layer, done) {
   args.push('-gravity', 'northwest')
   args.push('-annotate', `+${x}+${y}`, text)
   args.push('-fill', color)
-  args.push(filepath, filepath)
+  args.push(outputfile, outputfile)
   command('convert', args, done)
 }
 
-function processImage(filepath, layer, done) {
+function processImage(outputfile, layer, done) {
   var args = []
     , x = layer.x || 0
     , y = layer.y || 0
@@ -113,7 +138,7 @@ function processImage(filepath, layer, done) {
   }
   args.push('-gravity', 'center')
   args.push('-geometry', `+${x}+${y}`)
-  args.push(source, filepath, filepath)
+  args.push(source, outputfile, outputfile)
   command('composite', args, done)
 }
 

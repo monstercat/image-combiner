@@ -76,6 +76,23 @@ describe('image-combiner @slow', () => {
         })
       })
     })
+
+    it('works with a url', (done)=> {
+     var layers = [
+        {
+          type: 'image/image',
+          file: source
+        },
+        {
+          type: 'image/image',
+          file: 'https://www.monstercat.com/img/monstercat_long.png'
+        }
+      ]
+
+      imageUtil.processLayers(layers, (err, path) => {
+        done(err)
+      })
+    })
   })
 
   after(() => {
