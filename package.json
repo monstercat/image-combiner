@@ -13,9 +13,7 @@
   },
   "main": "index.js",
   "scripts": {
-    "build-dev": "component build --dev",
-    "component": "component install --dev",
-    "test": "component test"
+    "test": "node_modules/mocha/bin/mocha --timeout 4000 test/*.js"
   },
   "dependencies": {
     "async": "^2.0.0-rc.3",
@@ -26,6 +24,6 @@
   },
   "devDependencies": {
     "expect.js": "*",
-    "mocha": "^1.21.4"
+    "mocha": "^1.21.5"
   }
 }

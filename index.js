@@ -35,7 +35,7 @@ function downloadFiles(data, dir, done) {
   })
 }
 
-function handle(data, source, done) {
+function processLayers(data, source, done) {
   if (!Array.isArray(data)) {
     data = [data]
   }
@@ -118,24 +118,32 @@ function processImage(filepath, layer, done) {
 }
 
 function command(cmd, args, done) {
+  if (typeof args === 'function') {
+    done = args
+    args = []
+  }
+  else if (typeof args === 'string') {
+    args = args.split(' ').filter(a => !!a.length)
+  }
+
   var program = spawn(cmd, args)
 
   program.stdout.setEncoding('utf8')
   program.stderr.setEncoding('utf8')
 
   program.stdout.on('data', data => {
-    debug("program:out: %s", data.toString())
+    debug("%s stdout: %s", cmd, data.toString())
   })
 
   program.stderr.on('data', data => {
-    debug("program:err: %s", data.toString())
+    debug("%s stderr: %s", cmd, data.toString())
   })
 
-  program.on('close', err => {
-    if (err) {
-      debug(err)
+  program.on('close', ret => {
+    if (ret !== 0) {
+      debug("%s return value: ", cmd, ret)
     }
-    return done(err)
+    return done(ret === 0 ? null : Error(`${cmd} exited with status ${ret}`))
   })
 }
 
@@ -167,4 +175,7 @@ function largestSize(layers, done) {
   })
 }
 
-module.exports = handle
+module.exports = {
+  processLayers,
+  command
+}
