@@ -23,6 +23,7 @@
     "tmp": "0.0.28"
   },
   "devDependencies": {
+    "blink-diff": "^1.0.12",
     "expect.js": "*",
     "mocha": "^1.21.5"
   }
