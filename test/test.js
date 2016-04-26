@@ -5,15 +5,17 @@ var tmp        = require('tmp')
 var path       = require('path')
 
 var source               = path.join(__dirname, 'fixtures/source.png')
-var overlayedText        = path.join(__dirname, 'fixtures/overlayed-text-result.png')
+var overlaySource        = path.join(__dirname, 'fixtures/overlay.png')
+var textResult           = path.join(__dirname, 'fixtures/text-result.png')
+var overlayResult        = path.join(__dirname, 'fixtures/overlay-result.png')
 
-describe('dependencies', () => {
+describe('dependencies @slow', () => {
   it('imagemagick installed', (done)=> {
     imageUtil.command('convert', '--version', done)
   })
 })
 
-describe('image-combiner', () => {
+describe('image-combiner @slow', () => {
   var tmpfile = ''
     , clean
 
@@ -29,8 +31,8 @@ describe('image-combiner', () => {
     it('works', (done)=> {
       var layers = [
         {
-          file: source,
-          type: 'image/image'
+          type: 'image/image',
+          file: source
         },
         {
           type: 'image/text',
@@ -43,7 +45,32 @@ describe('image-combiner', () => {
         if (err) {
           return done(err)
         }
-        isSimilar(path, overlayedText, tmpfile, (err, similar) => {
+        isSimilar(path, textResult, tmpfile, (err, similar) => {
+          expect(similar).to.be(true)
+          done(err)
+        })
+      })
+    })
+  })
+
+  describe('image overlaying', ()=> {
+    it('works', (done)=> {
+      var layers = [
+        {
+          type: 'image/image',
+          file: source
+        },
+        {
+          type: 'image/image',
+          file: overlaySource
+        }
+      ]
+
+      imageUtil.processLayers(layers, (err, path) => {
+        if (err) {
+          return done(err)
+        }
+        isSimilar(path, overlayResult, tmpfile, (err, similar) => {
           expect(similar).to.be(true)
           done(err)
         })
