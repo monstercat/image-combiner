@@ -1,7 +1,6 @@
 var expect     = require('expect.js')
 var BlinkDiff  = require('blink-diff')
 var imageUtil  = require('../index.js')
-var tmp        = require('tmp')
 var path       = require('path')
 
 var source               = path.join(__dirname, 'fixtures/source.png')
@@ -9,26 +8,15 @@ var overlaySource        = path.join(__dirname, 'fixtures/overlay.png')
 var textResult           = path.join(__dirname, 'fixtures/text-result.png')
 var overlayResult        = path.join(__dirname, 'fixtures/overlay-result.png')
 
-describe('dependencies @slow', () => {
-  it('imagemagick installed', (done)=> {
+describe('dependencies', () => {
+  it('imagemagick installed', done => {
     imageUtil.command('convert', '--version', done)
   })
 })
 
 describe('image-combiner @slow', () => {
-  var tmpfile = ''
-    , clean
-
-  before(done => {
-    tmp.file((err, path, fd, cleanfunc) => {
-      tmpfile = path
-      clean = cleanfunc
-      done(err)
-    })
-  })
-
   describe('text labeling', ()=> {
-    it('works', (done)=> {
+    it('works', done => {
       var layers = [
         {
           type: 'image/image',
@@ -45,7 +33,7 @@ describe('image-combiner @slow', () => {
         if (err) {
           return done(err)
         }
-        isSimilar(path, textResult, tmpfile, (err, similar) => {
+        isSimilar(path, textResult, (err, similar) => {
           expect(similar).to.be(true)
           done(err)
         })
@@ -54,7 +42,7 @@ describe('image-combiner @slow', () => {
   })
 
   describe('image overlaying', ()=> {
-    it('works', (done)=> {
+    it('works', done => {
       var layers = [
         {
           type: 'image/image',
@@ -70,14 +58,14 @@ describe('image-combiner @slow', () => {
         if (err) {
           return done(err)
         }
-        isSimilar(path, overlayResult, tmpfile, (err, similar) => {
+        isSimilar(path, overlayResult, (err, similar) => {
           expect(similar).to.be(true)
           done(err)
         })
       })
     })
 
-    it('works with a url', (done)=> {
+    it('works with a url', done => {
      var layers = [
         {
           type: 'image/image',
@@ -89,25 +77,18 @@ describe('image-combiner @slow', () => {
         }
       ]
 
-      imageUtil.processLayers(layers, (err, path) => {
-        done(err)
-      })
+      imageUtil.processLayers(layers, done)
     })
-  })
-
-  after(() => {
-    clean()
   })
 })
 
 
-function isSimilar(a, b, output, done) {
+function isSimilar(a, b, done) {
   var diff = new BlinkDiff({
     imageAPath: a,
     imageBPath: b,
     thresholdType: BlinkDiff.THRESHOLD_PERCENT,
-    threshold: .01,
-    imageOutputPath: output
+    threshold: .01
   })
   diff.run((err, result) => {
     if (err) {

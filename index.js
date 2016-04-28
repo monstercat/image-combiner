@@ -49,14 +49,23 @@ function processLayers(layers, source, done) {
     source = null
   }
 
+  if (source) {
+    layers = [{
+      type: 'image/image',
+      file: source
+    }].concat(layers)
+  }
+
   async.auto({
-    'directory': makeDirectory,
-    'download': ['directory', download],
-    'size': ['download', findSize],
-    'blank': ['size', makeBlank],
-    'layers': ['blank', doLayers]
+    directory: makeDirectory,
+    download: ['directory', download],
+    size: ['download', findSize],
+    blank: ['size', makeBlank],
+    layers: ['blank', doLayers]
   }, (err, results) => {
-    done(err, (results && results.layers) ? results.layers : null)
+    var resultpath = (results && results.layers) ? results.layers : null
+    debug(`Processed layers into image file "${resultpath}"`)
+    done(err, resultpath)
   })
 
   function makeDirectory(cb) {
