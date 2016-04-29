@@ -40,19 +40,19 @@ function downloadFiles(layers, dir, done) {
   })
 }
 
-function processLayers(layers, source, done) {
+function processLayers(layers, opts, done) {
   if (!Array.isArray(layers)) {
     layers = [layers]
   }
-  if (typeof source === 'function') {
-    done = source
-    source = null
+  if (typeof opts === 'function') {
+    done = opts
+    opts = {}
   }
 
-  if (source) {
+  if (opts.source) {
     layers = [{
       type: 'image/image',
-      file: source
+      file: opts.source
     }].concat(layers)
   }
 
@@ -61,7 +61,7 @@ function processLayers(layers, source, done) {
     download: ['directory', download],
     size: ['download', findSize],
     blank: ['size', makeBlank],
-    layers: ['blank', doLayers]
+    layers: ['size', 'blank', doLayers]
   }, (err, results) => {
     var resultpath = (results && results.layers) ? results.layers : null
     debug(`Processed layers into image file "${resultpath}"`)
@@ -91,7 +91,14 @@ function processLayers(layers, source, done) {
   }
 
   function findSize(results, cb) {
-    largestSize(layers, cb)
+    if (opts.width && opts.height) {
+      async.setImmediate(() => {
+        cb(null, {width: opts.width, height: opts.height})
+      })
+    }
+    else {
+      largestSize(layers, cb)
+    }
   }
 
   function makeBlank(results, cb) {
@@ -102,41 +109,47 @@ function processLayers(layers, source, done) {
 
   function doLayers(results, cb) {
     var outputfile = results.directory.file
-    async.eachSeries(layers, processLayer.bind(null, outputfile), err => {
+    async.eachSeries(layers, processLayer.bind(null, outputfile, results.size), err => {
       cb(err, outputfile)
     })
   }
 }
 
-function processLayer(outputfile, layer, done) {
+function processLayer(outputfile, canvasSize, layer, done) {
   if (types[layer.type]) {
-    types[layer.type](outputfile, layer, done)
+    types[layer.type](outputfile, canvasSize, layer, done)
   }
   else {
     async.setImmediate(done)
   }
 }
 
-function processText(outputfile, layer, done) {
+function processText(outputfile, canvasSize, layer, done) {
   var args = []
     , x = layer.x || 0
     , y = layer.y || 0
     , text = layer.text
     , color = layer.color || 'black'
+    , gravity = layer.gravity || 'northwest'
   if (layer.font) {
     args.push('-font', layer.font)
   }
   if (layer.pointsize) {
-    args.push('-pointsize', layer.pointsize)
+    var pointsize = '' + layer.pointsize
+    // Convert size in percent to point size used in imagemagick if needed
+    if (pointsize.indexOf('%') > -1) {
+      pointsize = Math.floor(parseInt(pointsize) / 100 * canvasSize.height)
+    }
+    args.push('-pointsize', pointsize)
   }
-  args.push('-gravity', 'northwest')
+  args.push('-gravity', gravity)
   args.push('-annotate', `+${x}+${y}`, text)
   args.push('-fill', color)
   args.push(outputfile, outputfile)
   command('convert', args, done)
 }
 
-function processImage(outputfile, layer, done) {
+function processImage(outputfile, canvasSize, layer, done) {
   var args = []
     , x = layer.x || 0
     , y = layer.y || 0
