@@ -43,20 +43,20 @@ This will overlay text over the existing canvas.
   "y": "Optional - the y position of the label relative to its gravity - can be percent or pixels.",
   "gravity": "Optional - the anchoring of the label - uses the same values as imagemagick's gravity flag.",
   "pointsize": "Optional - The size of the font.",
-  "font": "Name of the font - run 'convert -list font' from a shell to see a list available.",
-  "color": "Color of the text."
+  "font": "Optional - Name of the font - run 'convert -list font' from a shell to see a list available.",
+  "color": "Optional - Color of the font."
 }
 ```
 
 
 ### Options
 
-Options is an optional object used for some config.
+Options is an optional object used for some additional config and override.
 
 ```json
 {
   "source": "file or url of a source image. This will be the first layer if provided.",
-  "width": "Fore set the width of final image - ignored if 'source' is provided.",
-  "height": "Fore set the height of final image - ignored if 'source' is provided.",
+  "width": "Force set the width of final image - ignored if 'source' is provided.",
+  "height": "Force set the height of final image - ignored if 'source' is provided.",
 }
 ```
