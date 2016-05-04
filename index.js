@@ -65,12 +65,12 @@ function processLayers(layers, opts, done) {
   }, (err, results) => {
     var resultpath = (results && results.layers) ? results.layers : null
     debug(`Processed layers into image file "${resultpath}"`)
-    done(err, resultpath)
+    done(err, resultpath, results.directory.clean)
   })
 
   function makeDirectory(cb) {
     tmp.dir((err, dirpath, clean) => {
-      cb(err, {directory: dirpath, file: join(dirpath, 'temp.png')})
+      cb(err, {directory: dirpath, file: join(dirpath, 'temp.png'), clean: clean})
     })
   }
 
