@@ -154,14 +154,54 @@ function processImage(outputfile, canvasSize, layer, done) {
     , x = layer.x || 0
     , y = layer.y || 0
     , source = layer.file
+    , width = layer.width
+    , height = layer.height
+    , gravity = layer.gravity || 'center'
+    , clean
 
   if (!source) {
     return done(Error('processImage: source not provided.'))
   }
-  args.push('-gravity', 'center')
-  args.push('-geometry', `+${x}+${y}`)
-  args.push(source, outputfile, outputfile)
-  command('composite', args, done)
+
+  async.waterfall([
+    resize,
+    overlay
+  ], (err, results) => {
+    if (clean) {
+      clean()
+    }
+    done(err)
+  })
+
+  function resize(cb) {
+    if (!width || !height) {
+      return async.setImmediate(() => {
+        cb(null, source)
+      })
+    }
+
+    tmp.file((err, path, fd, cleanFunc) => {
+      if (err) {
+        return cb(err)
+      }
+      clean = cleanFunc
+      command('convert', [source, '-resize', `${width}x${height}`, path], err => {
+        cb(err, path)
+      })
+    })
+  }
+
+  function overlay(source, cb) {
+    args.push('-gravity', gravity)
+    args.push('-geometry', `+${x}+${y}`)
+    args.push(source, outputfile, outputfile)
+    command('composite', args, cb)
+  }
+}
+
+// Resize image and overlay over outputfile
+function resizeImage(outputfile, canvasSize, layer, done) {
+
 }
 
 function command(cmd, args, done) {
